@@ -25,4 +25,4 @@ jobs:
 
     - name: Deploy to Heroku
       run: |
-        git push https://git.heroku.com/<your Heroku app name>.git HEAD:master -f
+        git push https://git.heroku.com/honeybadger.git HEAD:master -f
