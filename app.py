@@ -1,42 +1,53 @@
-
-from flask import Flask, request
-
+from flask import Flask, request, jsonify
+import requests
 import json
 
 app = Flask(__name__)
 
-# Replace the URL with your Slack webhook URL
-SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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'
+SLACK_APP_TOKEN = "xoxb-4927881068675-4933413928963-r4mRXL9uTvmlfQJMxiiBJomt"
+SLACK_CHANNEL_ID = "C04T8U6KMGW"
 
-# Define a function to check if the payload is a spam notification
-def is_spam(payload):
-    if payload.get('Type') == 'SpamNotification':
+def send_slack_alert(alert_message, email):
+    if not email:
+        return False
+
+    slack_data = {
+        "text": f"New spam notification received for {email}: {alert_message}",
+        "channel": SLACK_CHANNEL_ID
+    }
+    headers = {"Content-type": "application/json", "Authorization": f"Bearer {SLACK_APP_TOKEN}"}
+    response = requests.post("https://slack.com/api/chat.postMessage", headers=headers, data=json.dumps(slack_data))
+    if response.status_code == 200:
         return True
     else:
         return False
 
-# Define a function to send an alert to Slack
-def send_slack_alert(payload, requests=None):
-    if is_spam(payload):
-        email = payload.get('Email')
-        message = f"Spam notification received for email: {email}"
-        data = {'text': message}
-        headers = {'Content-type': 'application/json'}
-        response = requests.post(SLACK_WEBHOOK_URL, data=json.dumps(data), headers=headers)
-        return response.status_code
-    else:
-        return None
 
-# Define the endpoint for receiving a POST request with a JSON payload
+@app.route('/')
+def index():
+    return "Hello, World!"
+
+
 @app.route('/process_payload', methods=['POST'])
 def process_payload():
-    payload = request.get_json()
-    status_code = send_slack_alert(payload)
-    if status_code == 200:
-        return 'Slack alert sent successfully', 200
-    else:
-        return 'Error sending Slack alert', 500
+    if request.method == 'POST':
+        payload = request.get_json()
+        is_spam = payload.get('is_spam')
+        email = payload.get('email')
 
-# Run the app
+        if is_spam and email:
+            alert_message = f"New spam notification received for {email}: {json.dumps(payload)}"
+            if send_slack_alert(alert_message, email):
+                return "Alert sent to Slack successfully"
+            else:
+                return "Failed to send alert to Slack"
+        else:
+            return "Payload not processed. Not a spam notification."
+    else:
+        return "Method not allowed"
+
+
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
+
+
