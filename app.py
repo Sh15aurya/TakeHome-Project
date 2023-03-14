@@ -22,7 +22,6 @@ def send_slack_alert(alert_message, email):
     else:
         return False
 
-
 @app.route('/')
 def index():
     return "Hello, World!"
